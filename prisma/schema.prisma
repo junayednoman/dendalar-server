@@ -1,0 +1,131 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Auth {
+  id            String        @id @default(uuid())
+  email         String        @unique
+  password      String
+  role          UserRole
+  status        UserStatus    @default(PENDING)
+  loginProvider LoginProvider
+  fcmToken      String?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  otp           OTP?
+  profile       Profile?
+  userProfile   UserProfile?
+
+  @@map("auth")
+}
+
+model OTP {
+  id                String     @id @default(uuid())
+  authId            String     @unique
+  otp               String
+  expires           DateTime
+  attempts          Int        @default(0)
+  isVerified        Boolean    @default(false)
+  createdAt         DateTime   @default(now())
+  purpose           OTPPurpose
+  resetTokenExpires DateTime?
+  resetTokenHash    String?
+  auth              Auth       @relation(fields: [authId], references: [id])
+
+  @@unique([authId, purpose])
+  @@map("otp")
+}
+
+model Profile {
+  id        String   @id @default(uuid())
+  authId    String   @unique
+  name      String
+  image     String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  auth      Auth     @relation(fields: [authId], references: [id])
+
+  @@map("profiles")
+}
+
+model UserProfile {
+  id             String         @id @default(uuid())
+  authId         String         @unique
+  auth           Auth           @relation(fields: [authId], references: [id])
+  purpose        UserPurpose
+  referralSource ReferralSource
+  age            Int?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Level {
+  id        String    @id @default(uuid())
+  name      String
+  index     Int       @unique
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  chapters  Chapter[]
+}
+
+model Chapter {
+  id        String   @id @default(uuid())
+  name      String
+  index     Int
+  levelId   String
+  level     Level    @relation(fields: [levelId], references: [id])
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([levelId, index])
+}
+
+model Lesson {
+  id        String   @id @default(uuid())
+  name      String
+  index     Int
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+enum ReferralSource {
+  FACEBOOK
+  INSTAGRAM
+  TIKTOK
+  OTHER
+}
+
+enum UserPurpose {
+  JUST_FOR_FUN
+  BOOST_CAREER
+  CONNECT_WITH_PEOPLE
+  HIGHER_EDUCATION
+  OTHER
+}
+
+enum UserStatus {
+  PENDING
+  ACTIVE
+  BLOCKED
+  DELETED
+}
+
+enum LoginProvider {
+  EMAIL
+  GOOGLE
+}
+
+enum UserRole {
+  ADMIN
+  USER
+}
+
+enum OTPPurpose {
+  VERIFY_ACCOUNT
+  RESET_PASSWORD
+}
