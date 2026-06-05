@@ -6,6 +6,7 @@ import { otpRoutes } from "../modules/otp/otp.routes";
 import { legalRoutes } from "../modules/legal/legal.routes";
 import { levelRoutes } from "../modules/level/level.routes";
 import { chapterRoutes } from "../modules/chapter/chapter.routes";
+import { lessonRoutes } from "../modules/lesson/lesson.routes";
 const router = Router();
 
 const routes = [
@@ -15,6 +16,7 @@ const routes = [
   { path: "/legal", route: legalRoutes },
   { path: "/levels", route: levelRoutes },
   { path: "/chapters", route: chapterRoutes },
+  { path: "/lessons", route: lessonRoutes },
   { path: "/upload-files", route: fileRoutes },
 ];
 

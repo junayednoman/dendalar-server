@@ -95,8 +95,9 @@ model Chapter {
 
 model Lesson {
   id               String            @id @default(uuid())
-  name             String
-  index            Int
+  name             String            @unique
+  icon             String
+  index            Int               @unique
   createdAt        DateTime          @default(now())
   updatedAt        DateTime          @updatedAt
   questions        Question[]
