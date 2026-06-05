@@ -105,21 +105,21 @@ model Lesson {
 }
 
 model Question {
-  id                       String              @id @default(uuid())
-  chapterId                String
-  chapter                  Chapter             @relation(fields: [chapterId], references: [id], onDelete: Cascade)
-  lessonId                 String
-  lesson                   Lesson              @relation(fields: [lessonId], references: [id], onDelete: Cascade)
-  sentenceInEnglish        String?
-  sentenceInTargetLanguage String?
-  hint                     String?
-  fullSentence             String?
-  missingWord              String?
-  index                    Int
-  type                     QuestionType
-  createdAt                DateTime            @default(now())
-  updatedAt                DateTime            @updatedAt
-  completedQuestions       CompletedQuestion[]
+  id                         String              @id @default(uuid())
+  chapterId                  String
+  chapter                    Chapter             @relation(fields: [chapterId], references: [id], onDelete: Cascade)
+  lessonId                   String
+  lesson                     Lesson              @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  sentenceInEnglish          String?
+  sentenceInLearningLanguage String?
+  hint                       String?
+  fullSentence               String?
+  missingWord                String?
+  index                      Int
+  type                       QuestionType
+  createdAt                  DateTime            @default(now())
+  updatedAt                  DateTime            @updatedAt
+  completedQuestions         CompletedQuestion[]
 
   @@unique([index, type, chapterId, lessonId])
 }
