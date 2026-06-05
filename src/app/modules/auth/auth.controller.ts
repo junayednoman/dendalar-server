@@ -5,12 +5,9 @@ import { authServices } from "./auth.service";
 import config from "../../config";
 import { TRequest } from "../../interface/global.interface";
 import pick from "../../utils/pick";
-import ApiError from "../../classes/ApiError";
 
 const signup = handleAsyncRequest(async (req: TRequest, res) => {
-  if (!req.file) throw new ApiError(400, "Image file is required");
-
-  const result = await authServices.signUp(req.body, req.file);
+  const result = await authServices.signUp(req.body);
 
   sendResponse(res, {
     status: 201,

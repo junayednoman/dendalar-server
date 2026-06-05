@@ -55,8 +55,8 @@ const globalErrorHandler = (
     err.name === "PrismaClientKnownRequestError"
   ) {
     if (err.code === "P2002") {
-      message = `${err.meta?.modelName === "Auth" ? "User" : err.meta?.modelName} already exists with this ${
-        (err.meta?.target as string[] | number[])[0]
+      message = `${err?.meta?.modelName === "Auth" ? "User" : err?.meta?.modelName} already exists with this ${
+        (err?.meta?.target as string[] | number[])[0]
       }!`;
       error = err.meta;
     } else if (err.code === "P2025") {

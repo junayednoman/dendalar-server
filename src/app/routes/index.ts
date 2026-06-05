@@ -4,6 +4,7 @@ import { adminRoutes } from "../modules/admin/admin.routes";
 import { fileRoutes } from "../modules/uploadFile/uploadFile.routes";
 import { otpRoutes } from "../modules/otp/otp.routes";
 import { legalRoutes } from "../modules/legal/legal.routes";
+import { levelRoutes } from "../modules/level/level.routes";
 const router = Router();
 
 const routes = [
@@ -11,6 +12,7 @@ const routes = [
   { path: "/admins", route: adminRoutes },
   { path: "/otps", route: otpRoutes },
   { path: "/legal", route: legalRoutes },
+  { path: "/levels", route: levelRoutes },
   { path: "/upload-files", route: fileRoutes },
 ];
 

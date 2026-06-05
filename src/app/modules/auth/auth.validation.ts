@@ -1,6 +1,6 @@
 import z from "zod";
 import { emailZod, passwordZod } from "../../validation/global.validation";
-import { UserStatus } from "@prisma/client";
+import { ReferralSource, UserPurpose, UserStatus } from "@prisma/client";
 
 const commonSignupFields = {
   email: emailZod,
@@ -9,8 +9,22 @@ const commonSignupFields = {
 };
 
 export const userSignUpZod = z.object({
-  role: z.literal("USER"),
   ...commonSignupFields,
+  role: z.literal("USER"),
+  purpose: z.enum([
+    UserPurpose.BOOST_CAREER,
+    UserPurpose.CONNECT_WITH_PEOPLE,
+    UserPurpose.HIGHER_EDUCATION,
+    UserPurpose.JUST_FOR_FUN,
+    UserPurpose.OTHER,
+  ]),
+  referralSource: z.enum([
+    ReferralSource.FACEBOOK,
+    ReferralSource.INSTAGRAM,
+    ReferralSource.TIKTOK,
+    ReferralSource.OTHER,
+  ]),
+  age: z.coerce.number().int().min(1).max(99).optional(),
 });
 
 export type TSignup = z.infer<typeof userSignUpZod>;

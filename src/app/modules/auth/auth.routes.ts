@@ -10,19 +10,13 @@ import {
 import { authController } from "./auth.controller";
 import authorize from "../../middlewares/authorize";
 import { UserRole } from "@prisma/client";
-import { uploadImage } from "../../utils/awss3";
 
 const router = Router();
 
 router.get("/:id", authorize(UserRole.ADMIN), authController.getSingle);
 router.get("/refresh-token", authController.refreshToken);
 router.get("/", authorize(UserRole.ADMIN), authController.getAll);
-router.post(
-  "/signup",
-  uploadImage.single("image"),
-  validate(userSignUpZod, { formData: true }),
-  authController.signup
-);
+router.post("/signup", validate(userSignUpZod), authController.signup);
 router.post("/login", validate(loginZodSchema), authController.login);
 
 router.post(

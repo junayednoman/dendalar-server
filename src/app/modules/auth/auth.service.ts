@@ -2,7 +2,6 @@ import crypto from "crypto";
 import ApiError from "../../classes/ApiError";
 import prisma from "../../utils/prisma";
 import { sendEmail } from "../../utils/sendEmail";
-import { deleteFromS3, uploadToS3 } from "../../utils/awss3";
 import {
   TChangePasswordInput,
   TLoginInput,
@@ -19,7 +18,6 @@ import {
   TPaginationOptions,
 } from "../../utils/paginationCalculation";
 import generateOTP from "../../utils/generateOTP";
-import { TFile } from "../../interface/file.interface";
 import {
   LoginProvider,
   OTPPurpose,
@@ -28,7 +26,7 @@ import {
   UserStatus,
 } from "@prisma/client";
 
-const signUp = async (payload: TSignup, file: TFile) => {
+const signUp = async (payload: TSignup) => {
   const existingUser = await prisma.auth.findUnique({
     where: {
       email: payload.email,
@@ -48,8 +46,6 @@ const signUp = async (payload: TSignup, file: TFile) => {
 
   const otp = generateOTP();
 
-  const imageUrl = await uploadToS3(file);
-
   try {
     const result = await prisma.$transaction(async tn => {
       const result = await tn.auth.upsert({
@@ -67,17 +63,29 @@ const signUp = async (payload: TSignup, file: TFile) => {
         create: {
           authId: result.id,
           name: payload.name,
-          image: imageUrl,
+          image: "",
         },
         update: {
           name: payload.name,
-          image: imageUrl,
+          image: "",
         },
       });
 
-      // ============ =============== //
-      //  do the user part here
-      // ============ =============== //
+      await tn.userProfile.upsert({
+        where: {
+          authId: result.id,
+        },
+        create: {
+          authId: result.id,
+          purpose: payload.purpose,
+          referralSource: payload.referralSource,
+        },
+        update: {
+          authId: result.id,
+          purpose: payload.purpose,
+          referralSource: payload.referralSource,
+        },
+      });
 
       const hashedOtp = await bcrypt.hash(otp.toString(), 10);
       const otpExpires = new Date(Date.now() + 2 * 60 * 1000);
@@ -111,9 +119,11 @@ const signUp = async (payload: TSignup, file: TFile) => {
     }
 
     return result;
-  } catch (error) {
-    await deleteFromS3(imageUrl);
-    throw error;
+  } catch (error: any) {
+    throw new ApiError(
+      error.statusCode || 500,
+      error.message || "Something went wrong!"
+    );
   }
 };
 

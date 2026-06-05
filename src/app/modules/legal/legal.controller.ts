@@ -5,7 +5,7 @@ import { TRequest } from "../../interface/global.interface";
 import { LegalService } from "./legal.service";
 
 const get = handleAsyncRequest(async (_req: TRequest, res: Response) => {
-  const result = await LegalService.get();
+  const result = await LegalService.getLegalData();
   sendResponse(res, {
     message: "Legal data retrieved successfully!",
     data: result,
@@ -13,7 +13,7 @@ const get = handleAsyncRequest(async (_req: TRequest, res: Response) => {
 });
 
 const update = handleAsyncRequest(async (req: TRequest, res: Response) => {
-  const result = await LegalService.upsert(req.body);
+  const result = await LegalService.upsertLegalData(req.body);
   sendResponse(res, {
     message: "Legal data updated successfully!",
     data: result,
