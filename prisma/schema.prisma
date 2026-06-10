@@ -7,22 +7,18 @@ datasource db {
 }
 
 model Auth {
-  id                 String              @id @default(uuid())
-  email              String              @unique
-  password           String
-  role               UserRole
-  status             UserStatus          @default(PENDING)
-  loginProvider      LoginProvider
-  fcmToken           String?
-  createdAt          DateTime            @default(now())
-  updatedAt          DateTime            @updatedAt
-  otp                OTP?
-  profile            Profile?
-  userProfile        UserProfile?
-  completedLevels    CompletedLevel[]
-  completedChapters  CompletedChapter[]
-  completedLessons   CompletedLesson[]
-  completedQuestions CompletedQuestion[]
+  id            String        @id @default(uuid())
+  email         String        @unique
+  password      String
+  role          UserRole
+  status        UserStatus    @default(PENDING)
+  loginProvider LoginProvider
+  fcmToken      String?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  otp           OTP?
+  profile       Profile?
+  userProfile   UserProfile?
 
   @@map("auth")
 }
@@ -57,59 +53,67 @@ model Profile {
 }
 
 model UserProfile {
-  id             String         @id @default(uuid())
-  authId         String         @unique
-  auth           Auth           @relation(fields: [authId], references: [id], onDelete: Cascade)
-  purpose        UserPurpose
-  referralSource ReferralSource
-  age            Int?
-  createdAt      DateTime       @default(now())
-  updatedAt      DateTime       @updatedAt
+  id               String         @id @default(uuid())
+  authId           String         @unique
+  auth             Auth           @relation(fields: [authId], references: [id], onDelete: Cascade)
+  purpose          UserPurpose
+  referralSource   ReferralSource
+  age              Int?
+  activeLevelId    String?
+  activeLevel      Level?         @relation(fields: [activeLevelId], references: [id], onDelete: SetNull)
+  activeChapterId  String?
+  activeChapter    Chapter?       @relation(fields: [activeChapterId], references: [id], onDelete: SetNull)
+  activeLessonId   String?
+  activeLesson     Lesson?        @relation(fields: [activeLessonId], references: [id], onDelete: SetNull)
+  activeQuestionId String?
+  activeQuestion   Question?      @relation(fields: [activeQuestionId], references: [id], onDelete: SetNull)
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
 }
 
 model Level {
-  id              String           @id @default(uuid())
-  name            String           @unique
-  index           Int              @unique
-  createdAt       DateTime         @default(now())
-  updatedAt       DateTime         @updatedAt
-  chapters        Chapter[]
-  completedLevels CompletedLevel[]
+  id           String        @id @default(uuid())
+  name         String        @unique
+  index        Int           @unique
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  chapters     Chapter[]
+  userProfiles UserProfile[]
 
   @@unique([name, index])
 }
 
 model Chapter {
-  id                String             @id @default(uuid())
-  name              String
-  index             Int
-  levelId           String
-  level             Level              @relation(fields: [levelId], references: [id], onDelete: Cascade)
-  createdAt         DateTime           @default(now())
-  updatedAt         DateTime           @updatedAt
-  questions         Question[]
-  completedChapters CompletedChapter[]
+  id           String        @id @default(uuid())
+  name         String
+  index        Int
+  levelId      String
+  level        Level         @relation(fields: [levelId], references: [id], onDelete: Cascade)
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  questions    Question[]
+  userProfiles UserProfile[]
 
   @@unique([levelId, index])
 }
 
 model Lesson {
-  id               String            @id @default(uuid())
-  name             String            @unique
-  icon             String
-  index            Int               @unique
-  createdAt        DateTime          @default(now())
-  updatedAt        DateTime          @updatedAt
-  questions        Question[]
-  completedLessons CompletedLesson[]
+  id           String        @id @default(uuid())
+  name         String        @unique
+  icon         String
+  index        Int           @unique
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  questions    Question[]
+  userProfiles UserProfile[]
 }
 
 model Question {
-  id                         String              @id @default(uuid())
+  id                         String        @id @default(uuid())
   chapterId                  String
-  chapter                    Chapter             @relation(fields: [chapterId], references: [id], onDelete: Cascade)
+  chapter                    Chapter       @relation(fields: [chapterId], references: [id], onDelete: Cascade)
   lessonId                   String
-  lesson                     Lesson              @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  lesson                     Lesson        @relation(fields: [lessonId], references: [id], onDelete: Cascade)
   sentenceInEnglish          String?
   sentenceInLearningLanguage String?
   hint                       String?
@@ -117,51 +121,11 @@ model Question {
   missingWord                String?
   index                      Int
   type                       QuestionType
-  createdAt                  DateTime            @default(now())
-  updatedAt                  DateTime            @updatedAt
-  completedQuestions         CompletedQuestion[]
+  createdAt                  DateTime      @default(now())
+  updatedAt                  DateTime      @updatedAt
+  userProfiles               UserProfile[]
 
   @@unique([index, type, chapterId, lessonId])
-}
-
-model CompletedLevel {
-  id        String   @id @default(uuid())
-  authId    String
-  auth      Auth     @relation(fields: [authId], references: [id], onDelete: Cascade)
-  levelId   String
-  level     Level    @relation(fields: [levelId], references: [id], onDelete: Cascade)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-}
-
-model CompletedChapter {
-  id        String   @id @default(uuid())
-  authId    String
-  auth      Auth     @relation(fields: [authId], references: [id], onDelete: Cascade)
-  chapterId String
-  chapter   Chapter  @relation(fields: [chapterId], references: [id], onDelete: Cascade)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-}
-
-model CompletedLesson {
-  id        String   @id @default(uuid())
-  authId    String
-  auth      Auth     @relation(fields: [authId], references: [id], onDelete: Cascade)
-  lessonId  String
-  lesson    Lesson   @relation(fields: [lessonId], references: [id], onDelete: Cascade)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-}
-
-model CompletedQuestion {
-  id         String   @id @default(uuid())
-  authId     String
-  auth       Auth     @relation(fields: [authId], references: [id], onDelete: Cascade)
-  questionId String
-  question   Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
 }
 
 model Legal {

@@ -1,5 +1,5 @@
 import { TFile } from "../../interface/file.interface";
-import { TRequest } from "../../interface/global.interface";
+import { TAuthUser, TRequest } from "../../interface/global.interface";
 import handleAsyncRequest from "../../utils/handleAsyncRequest";
 import { sendResponse } from "../../utils/sendResponse";
 import { lessonServices } from "./lesson.service";
@@ -15,7 +15,7 @@ const createLesson = handleAsyncRequest(async (req: TRequest, res) => {
 });
 
 const getAllLessons = handleAsyncRequest(async (req: TRequest, res) => {
-  const result = await lessonServices.getAllLessons();
+  const result = await lessonServices.getAllLessons(req.user as TAuthUser);
 
   sendResponse(res, {
     message: "All lessons retrieved successfully!",

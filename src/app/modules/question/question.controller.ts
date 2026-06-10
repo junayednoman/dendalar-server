@@ -1,4 +1,4 @@
-import { TRequest } from "../../interface/global.interface";
+import { TAuthUser, TRequest } from "../../interface/global.interface";
 import handleAsyncRequest from "../../utils/handleAsyncRequest";
 import { sendResponse } from "../../utils/sendResponse";
 import { questionServices } from "./question.service";
@@ -13,7 +13,7 @@ const createQuestion = handleAsyncRequest(async (req: TRequest, res) => {
   });
 });
 
-const getAllQuestions = handleAsyncRequest(async (req: TRequest, res) => {
+const getAllQuestions = handleAsyncRequest(async (_req: TRequest, res) => {
   const result = await questionServices.getAllQuestions();
 
   sendResponse(res, {
@@ -24,7 +24,8 @@ const getAllQuestions = handleAsyncRequest(async (req: TRequest, res) => {
 
 const getQuestionsByChapter = handleAsyncRequest(async (req: TRequest, res) => {
   const result = await questionServices.getQuestionsByChapter(
-    req.params.chapterId as string
+    req.params.chapterId as string,
+    req.user as TAuthUser
   );
 
   sendResponse(res, {

@@ -1,4 +1,4 @@
-import { TRequest } from "../../interface/global.interface";
+import { TAuthUser, TRequest } from "../../interface/global.interface";
 import handleAsyncRequest from "../../utils/handleAsyncRequest";
 import { sendResponse } from "../../utils/sendResponse";
 import { chapterServices } from "./chapter.service";
@@ -14,7 +14,10 @@ const createChapter = handleAsyncRequest(async (req: TRequest, res) => {
 });
 
 const getAllChapters = handleAsyncRequest(async (req: TRequest, res) => {
-  const result = await chapterServices.getAllChapters();
+  const result = await chapterServices.getAllChapters(
+    req.user as TAuthUser,
+    req.query.levelId as string | undefined
+  );
 
   sendResponse(res, {
     message: "All chapters retrieved successfully!",

@@ -1,5 +1,6 @@
 import ApiError from "../../classes/ApiError";
 import { TFile } from "../../interface/file.interface";
+import { TAuthUser } from "../../interface/global.interface";
 import { deleteFromS3, uploadToS3 } from "../../utils/awss3";
 import prisma from "../../utils/prisma";
 import { CreateLessonZod, UpdateLessonZod } from "./lesson.validation";
@@ -22,10 +23,35 @@ const createLesson = async (payload: CreateLessonZod, file: TFile) => {
   return result;
 };
 
-const getAllLessons = async () => {
+const getAllLessons = async (authUser: TAuthUser) => {
   const lessons = await prisma.lesson.findMany({
     orderBy: { index: "asc" },
   });
+
+  if (authUser.role === "USER") {
+    let activeLessonId: string | null = null;
+
+    const userProfile = await prisma.userProfile.findUnique({
+      where: { authId: authUser.id },
+      select: { activeLessonId: true },
+    });
+
+    if (userProfile?.activeLessonId) {
+      activeLessonId = userProfile.activeLessonId;
+    }
+
+    const activeLessonIndex = lessons.findIndex(
+      lesson => lesson.id === activeLessonId
+    );
+    const result = lessons.map((lesson, index) => {
+      if (index < activeLessonIndex) {
+        return { ...lesson, isCompleted: true };
+      }
+      return { ...lesson, isCompleted: false };
+    });
+    return result;
+  }
+
   return lessons;
 };
 

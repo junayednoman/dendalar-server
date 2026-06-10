@@ -1,4 +1,5 @@
 import ApiError from "../../classes/ApiError";
+import { TAuthUser } from "../../interface/global.interface";
 import prisma from "../../utils/prisma";
 import { CreateQuestionZod, UpdateQuestionZod } from "./question.validation";
 
@@ -42,7 +43,10 @@ const getAllQuestions = async () => {
   return questions;
 };
 
-const getQuestionsByChapter = async (chapterId: string) => {
+const getQuestionsByChapter = async (
+  chapterId: string,
+  authUser: TAuthUser
+) => {
   const questions = await prisma.question.findMany({
     where: { chapterId },
     orderBy: { index: "asc" },
@@ -50,6 +54,31 @@ const getQuestionsByChapter = async (chapterId: string) => {
       lesson: { select: { id: true, name: true, index: true } },
     },
   });
+
+  if (authUser.role === "USER") {
+    let activeQuestionId: string | null = null;
+
+    const userProfile = await prisma.userProfile.findUnique({
+      where: { authId: authUser.id },
+      select: { activeQuestionId: true },
+    });
+
+    if (userProfile?.activeQuestionId) {
+      activeQuestionId = userProfile.activeQuestionId;
+    }
+
+    const activeQuestionIndex = questions.findIndex(
+      question => question.id === activeQuestionId
+    );
+    const result = questions.map((question, index) => {
+      if (index < activeQuestionIndex) {
+        return { ...question, isCompleted: true };
+      }
+      return { ...question, isCompleted: false };
+    });
+    return result;
+  }
+
   return questions;
 };
 

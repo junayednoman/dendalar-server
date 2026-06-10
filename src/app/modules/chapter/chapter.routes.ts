@@ -14,7 +14,11 @@ router.post(
   chapterController.createChapter
 );
 
-router.get("/", authorize(UserRole.ADMIN), chapterController.getAllChapters);
+router.get(
+  "/",
+  authorize(UserRole.ADMIN, UserRole.USER),
+  chapterController.getAllChapters
+);
 
 router.patch(
   "/:id",

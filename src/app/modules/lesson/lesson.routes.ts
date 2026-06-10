@@ -16,7 +16,11 @@ router.post(
   lessonController.createLesson
 );
 
-router.get("/", authorize(UserRole.ADMIN), lessonController.getAllLessons);
+router.get(
+  "/",
+  authorize(UserRole.ADMIN, UserRole.USER),
+  lessonController.getAllLessons
+);
 
 router.patch(
   "/:id",

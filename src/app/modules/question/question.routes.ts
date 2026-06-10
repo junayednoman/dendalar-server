@@ -14,11 +14,15 @@ router.post(
   questionController.createQuestion
 );
 
-router.get("/", authorize(UserRole.ADMIN), questionController.getAllQuestions);
+router.get(
+  "/",
+  authorize(UserRole.ADMIN, UserRole.USER),
+  questionController.getAllQuestions
+);
 
 router.get(
   "/chapter/:chapterId",
-  authorize(UserRole.ADMIN),
+  authorize(UserRole.ADMIN, UserRole.USER),
   questionController.getQuestionsByChapter
 );
 

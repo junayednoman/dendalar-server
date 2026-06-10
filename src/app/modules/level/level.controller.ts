@@ -1,4 +1,4 @@
-import { TRequest } from "../../interface/global.interface";
+import { TAuthUser, TRequest } from "../../interface/global.interface";
 import handleAsyncRequest from "../../utils/handleAsyncRequest";
 import { sendResponse } from "../../utils/sendResponse";
 import { levelServices } from "./level.service";
@@ -14,7 +14,7 @@ const createLevel = handleAsyncRequest(async (req: TRequest, res) => {
 });
 
 const getAllLevels = handleAsyncRequest(async (req: TRequest, res) => {
-  const result = await levelServices.getAllLevels();
+  const result = await levelServices.getAllLevels(req.user as TAuthUser);
 
   sendResponse(res, {
     message: "All levels retrieved successfully!",

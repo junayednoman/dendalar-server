@@ -14,7 +14,11 @@ router.post(
   levelController.createLevel
 );
 
-router.get("/", authorize(UserRole.ADMIN), levelController.getAllLevels);
+router.get(
+  "/",
+  authorize(UserRole.ADMIN, UserRole.USER),
+  levelController.getAllLevels
+);
 
 router.patch(
   "/:id",

@@ -1,4 +1,5 @@
 import ApiError from "../../classes/ApiError";
+import { TAuthUser } from "../../interface/global.interface";
 import prisma from "../../utils/prisma";
 import { CreateLevelZod, UpdateLevelZod } from "./level.validation";
 
@@ -19,10 +20,35 @@ const createLevel = async (payload: CreateLevelZod) => {
   return result;
 };
 
-const getAllLevels = async () => {
+const getAllLevels = async (authUser: TAuthUser) => {
+  let activeLevelId: string | null = null;
+  if (authUser.role === "USER") {
+    const userProfile = await prisma.userProfile.findUnique({
+      where: { authId: authUser.id },
+      select: { activeLevelId: true },
+    });
+
+    if (userProfile?.activeLevelId) {
+      activeLevelId = userProfile.activeLevelId;
+    }
+  }
+
   const levels = await prisma.level.findMany({
     orderBy: { index: "asc" },
   });
+
+  if (activeLevelId) {
+    const activeLevelIndex = levels.findIndex(
+      level => level.id === activeLevelId
+    );
+    const result = levels.map((level, index) => {
+      if (index < activeLevelIndex) {
+        return { ...level, isCompleted: true };
+      }
+      return { ...level, isCompleted: false };
+    });
+    return result;
+  }
   return levels;
 };
 

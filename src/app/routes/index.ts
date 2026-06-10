@@ -8,6 +8,7 @@ import { levelRoutes } from "../modules/level/level.routes";
 import { chapterRoutes } from "../modules/chapter/chapter.routes";
 import { lessonRoutes } from "../modules/lesson/lesson.routes";
 import { questionRoutes } from "../modules/question/question.routes";
+import { profileRoutes } from "../modules/profile/profile.routes";
 const router = Router();
 
 const routes = [
@@ -19,6 +20,7 @@ const routes = [
   { path: "/chapters", route: chapterRoutes },
   { path: "/lessons", route: lessonRoutes },
   { path: "/questions", route: questionRoutes },
+  { path: "/profile", route: profileRoutes },
   { path: "/upload-files", route: fileRoutes },
 ];
 

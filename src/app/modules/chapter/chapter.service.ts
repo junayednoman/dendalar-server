@@ -1,4 +1,6 @@
+import { Prisma } from "@prisma/client";
 import ApiError from "../../classes/ApiError";
+import { TAuthUser } from "../../interface/global.interface";
 import prisma from "../../utils/prisma";
 import { CreateChapterZod, UpdateChapterZod } from "./chapter.validation";
 
@@ -18,11 +20,42 @@ const createChapter = async (payload: CreateChapterZod) => {
   return result;
 };
 
-const getAllChapters = async () => {
+const getAllChapters = async (authUser: TAuthUser, levelId?: string) => {
+  const andConditions: Prisma.ChapterWhereInput[] = [];
+  if (levelId) andConditions.push({ levelId });
+  const whereConditions: Prisma.ChapterWhereInput =
+    andConditions.length > 0 ? { AND: andConditions } : {};
+
   const chapters = await prisma.chapter.findMany({
+    where: whereConditions,
     orderBy: { index: "asc" },
     include: { level: { select: { id: true, name: true, index: true } } },
   });
+
+  if (authUser.role === "USER") {
+    let activeChapterId: string | null = null;
+
+    const userProfile = await prisma.userProfile.findUnique({
+      where: { authId: authUser.id },
+      select: { activeChapterId: true },
+    });
+
+    if (userProfile?.activeChapterId) {
+      activeChapterId = userProfile.activeChapterId;
+    }
+
+    const activeChapterIndex = chapters.findIndex(
+      chapter => chapter.id === activeChapterId
+    );
+    const result = chapters.map((chapter, index) => {
+      if (index < activeChapterIndex) {
+        return { ...chapter, isCompleted: true };
+      }
+      return { ...chapter, isCompleted: false };
+    });
+    return result;
+  }
+
   return chapters;
 };
 
