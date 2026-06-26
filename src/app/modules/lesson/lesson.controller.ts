@@ -1,11 +1,10 @@
-import { TFile } from "../../interface/file.interface";
 import { TAuthUser, TRequest } from "../../interface/global.interface";
 import handleAsyncRequest from "../../utils/handleAsyncRequest";
 import { sendResponse } from "../../utils/sendResponse";
 import { lessonServices } from "./lesson.service";
 
 const createLesson = handleAsyncRequest(async (req: TRequest, res) => {
-  const result = await lessonServices.createLesson(req.body, req.file as TFile);
+  const result = await lessonServices.createLesson(req.body);
 
   sendResponse(res, {
     status: 201,
@@ -15,7 +14,13 @@ const createLesson = handleAsyncRequest(async (req: TRequest, res) => {
 });
 
 const getAllLessons = handleAsyncRequest(async (req: TRequest, res) => {
-  const result = await lessonServices.getAllLessons(req.user as TAuthUser);
+  const chapterId =
+    typeof req.query.chapterId === "string" ? req.query.chapterId : undefined;
+
+  const result = await lessonServices.getAllLessons(
+    req.user as TAuthUser,
+    chapterId
+  );
 
   sendResponse(res, {
     message: "All lessons retrieved successfully!",
@@ -26,8 +31,7 @@ const getAllLessons = handleAsyncRequest(async (req: TRequest, res) => {
 const updateLesson = handleAsyncRequest(async (req: TRequest, res) => {
   const result = await lessonServices.updateLesson(
     req.params.id as string,
-    req.body,
-    req.file as TFile
+    req.body
   );
 
   sendResponse(res, {

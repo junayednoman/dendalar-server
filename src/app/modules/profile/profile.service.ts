@@ -4,6 +4,36 @@ import { deleteFromS3, uploadToS3 } from "../../utils/awss3";
 import prisma from "../../utils/prisma";
 import { TUpdateProfile } from "./profile.validation";
 
+const findFirstChapterByLevelId = async (levelId: string) => {
+  const chapter = await prisma.chapter.findFirst({
+    where: { levelId },
+    orderBy: { index: "asc" },
+  });
+
+  if (!chapter) throw new ApiError(404, "Next chapter not found!");
+  return chapter;
+};
+
+const findFirstLessonByChapterId = async (chapterId: string) => {
+  const lesson = await prisma.lesson.findFirst({
+    where: { chapterId },
+    orderBy: [{ index: "asc" }, { lessonType: "asc" }],
+  });
+
+  if (!lesson) throw new ApiError(404, "Next lesson not found!");
+  return lesson;
+};
+
+const findFirstQuestionByLessonId = async (lessonId: string, chapterId: string) => {
+  const question = await prisma.question.findFirst({
+    where: { lessonId, chapterId },
+    orderBy: [{ index: "asc" }, { createdAt: "asc" }],
+  });
+
+  if (!question) throw new ApiError(404, "Next question not found!");
+  return question;
+};
+
 const getProfile = async (userId: string) => {
   const profile = await prisma.profile.findUnique({
     where: { authId: userId },
@@ -67,19 +97,44 @@ const updateActiveLevel = async (userId: string, levelId: string) => {
 const updateActiveChapter = async (userId: string, chapterId: string) => {
   const currentChapter = await prisma.chapter.findUniqueOrThrow({
     where: { id: chapterId },
-  });
-
-  const nextChapter = await prisma.chapter.findUniqueOrThrow({
-    where: {
-      levelId_index: {
-        levelId: currentChapter.levelId,
-        index: currentChapter.index + 1,
+    include: {
+      level: {
+        select: {
+          id: true,
+          index: true,
+        },
       },
     },
   });
+
+  let nextChapter = await prisma.chapter.findFirst({
+    where: {
+      levelId: currentChapter.levelId,
+      index: { gt: currentChapter.index },
+    },
+    orderBy: { index: "asc" },
+  });
+
+  let nextLevelId = currentChapter.levelId;
+
+  if (!nextChapter) {
+    const nextLevel = await prisma.level.findFirst({
+      where: { index: { gt: currentChapter.level.index } },
+      orderBy: { index: "asc" },
+    });
+
+    if (!nextLevel) throw new ApiError(404, "Next chapter not found!");
+
+    nextLevelId = nextLevel.id;
+    nextChapter = await findFirstChapterByLevelId(nextLevel.id);
+  }
+
   const result = await prisma.userProfile.update({
     where: { authId: userId },
-    data: { activeChapterId: nextChapter.id },
+    data: {
+      activeLevelId: nextLevelId,
+      activeChapterId: nextChapter.id,
+    },
   });
   return result;
 };
@@ -87,16 +142,64 @@ const updateActiveChapter = async (userId: string, chapterId: string) => {
 const updateActiveLesson = async (userId: string, lessonId: string) => {
   const currentLesson = await prisma.lesson.findUniqueOrThrow({
     where: { id: lessonId },
-  });
-
-  const nextLesson = await prisma.lesson.findUniqueOrThrow({
-    where: {
-      index: currentLesson.index + 1,
+    include: {
+      chapter: {
+        include: {
+          level: {
+            select: {
+              id: true,
+              index: true,
+            },
+          },
+        },
+      },
     },
   });
+
+  let nextLesson = await prisma.lesson.findFirst({
+    where: {
+      chapterId: currentLesson.chapterId,
+      index: { gt: currentLesson.index },
+    },
+    orderBy: [{ index: "asc" }, { lessonType: "asc" }],
+  });
+
+  let nextChapterId = currentLesson.chapterId;
+  let nextLevelId = currentLesson.chapter.levelId;
+
+  if (!nextLesson) {
+    let nextChapter = await prisma.chapter.findFirst({
+      where: {
+        levelId: currentLesson.chapter.levelId,
+        index: { gt: currentLesson.chapter.index },
+      },
+      orderBy: { index: "asc" },
+    });
+
+    if (!nextChapter) {
+      const nextLevel = await prisma.level.findFirst({
+        where: { index: { gt: currentLesson.chapter.level.index } },
+        orderBy: { index: "asc" },
+      });
+
+      if (!nextLevel) throw new ApiError(404, "Next lesson not found!");
+
+      nextLevelId = nextLevel.id;
+      nextChapter = await findFirstChapterByLevelId(nextLevel.id);
+    }
+
+    nextChapterId = nextChapter.id;
+    nextLevelId = nextChapter.levelId;
+    nextLesson = await findFirstLessonByChapterId(nextChapter.id);
+  }
+
   const result = await prisma.userProfile.update({
     where: { authId: userId },
-    data: { activeLessonId: nextLesson.id },
+    data: {
+      activeLevelId: nextLevelId,
+      activeChapterId: nextChapterId,
+      activeLessonId: nextLesson.id,
+    },
   });
   return result;
 };
@@ -104,21 +207,118 @@ const updateActiveLesson = async (userId: string, lessonId: string) => {
 const updateActiveQuestion = async (userId: string, questionId: string) => {
   const currentQuestion = await prisma.question.findUniqueOrThrow({
     where: { id: questionId },
-  });
-
-  const nextQuestion = await prisma.question.findUniqueOrThrow({
-    where: {
-      index_type_chapterId_lessonId: {
-        index: currentQuestion.index + 1,
-        type: currentQuestion.type,
-        chapterId: currentQuestion.chapterId,
-        lessonId: currentQuestion.lessonId,
+    include: {
+      lesson: {
+        include: {
+          chapter: {
+            include: {
+              level: {
+                select: {
+                  id: true,
+                  index: true,
+                },
+              },
+            },
+          },
+        },
       },
     },
   });
+
+  if (!currentQuestion.lessonId) {
+    throw new ApiError(404, "Current question is not associated with a lesson!");
+  }
+
+  const questions = await prisma.question.findMany({
+    where: {
+      chapterId: currentQuestion.chapterId,
+      lessonId: currentQuestion.lessonId,
+    },
+    orderBy: [{ index: "asc" }, { createdAt: "asc" }],
+  });
+
+  const currentQuestionIndex = questions.findIndex(
+    question => question.id === questionId
+  );
+  let nextQuestion = questions[currentQuestionIndex + 1];
+  let nextLessonId = currentQuestion.lessonId;
+  let nextChapterId = currentQuestion.chapterId;
+  let nextLevelId = currentQuestion.lesson?.chapter.levelId;
+
+  if (!nextQuestion) {
+    let nextLesson = await prisma.lesson.findFirst({
+      where: {
+        chapterId: currentQuestion.chapterId,
+        index: { gt: currentQuestion.lesson?.index },
+      },
+      orderBy: [{ index: "asc" }, { lessonType: "asc" }],
+    });
+
+    let nextChapter = currentQuestion.lesson?.chapter ?? null;
+
+    if (!nextLesson) {
+      nextChapter = await prisma.chapter.findFirst({
+        where: {
+          levelId: currentQuestion.lesson?.chapter.levelId,
+          index: { gt: currentQuestion.lesson?.chapter.index },
+        },
+        orderBy: { index: "asc" },
+        include: {
+          level: {
+            select: {
+              id: true,
+              index: true,
+            },
+          },
+        },
+      });
+
+      if (!nextChapter) {
+        const nextLevel = await prisma.level.findFirst({
+          where: { index: { gt: currentQuestion.lesson?.chapter.level.index } },
+          orderBy: { index: "asc" },
+        });
+
+        if (!nextLevel) throw new ApiError(404, "Next question not found!");
+
+        nextLevelId = nextLevel.id;
+        nextChapter = await prisma.chapter.findFirst({
+          where: { levelId: nextLevel.id },
+          orderBy: { index: "asc" },
+          include: {
+            level: {
+              select: {
+                id: true,
+                index: true,
+              },
+            },
+          },
+        });
+
+        if (!nextChapter) throw new ApiError(404, "Next question not found!");
+      } else {
+        nextLevelId = nextChapter.levelId;
+      }
+
+      nextLesson = await findFirstLessonByChapterId(nextChapter.id);
+    }
+
+    nextLessonId = nextLesson.id;
+    nextChapterId = nextLesson.chapterId;
+    nextQuestion = await findFirstQuestionByLessonId(
+      nextLesson.id,
+      nextLesson.chapterId
+    );
+  }
+
   const result = await prisma.userProfile.update({
     where: { authId: userId },
-    data: { activeQuestionId: nextQuestion.id },
+    data: {
+      activeLevelId: nextLevelId,
+      activeChapterId: nextChapterId,
+      activeLessonId: nextLessonId,
+      activeQuestionId: nextQuestion.id,
+    },
   });
   return result;
 };

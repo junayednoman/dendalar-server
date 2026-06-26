@@ -1,7 +1,16 @@
 import { TAuthUser, TRequest } from "../../interface/global.interface";
 import handleAsyncRequest from "../../utils/handleAsyncRequest";
+import pick from "../../utils/pick";
 import { sendResponse } from "../../utils/sendResponse";
 import { questionServices } from "./question.service";
+
+const getQuestionFilters = (
+  req: TRequest
+): {
+  lessonId?: string;
+} => ({
+  lessonId: typeof req.query.lessonId === "string" ? req.query.lessonId : undefined,
+});
 
 const createQuestion = handleAsyncRequest(async (req: TRequest, res) => {
   const result = await questionServices.createQuestion(req.body);
@@ -13,8 +22,12 @@ const createQuestion = handleAsyncRequest(async (req: TRequest, res) => {
   });
 });
 
-const getAllQuestions = handleAsyncRequest(async (_req: TRequest, res) => {
-  const result = await questionServices.getAllQuestions();
+const getAllQuestions = handleAsyncRequest(async (req: TRequest, res) => {
+  const options = pick(req.query, ["page", "limit", "sortBy", "orderBy"]);
+  const result = await questionServices.getAllQuestions(
+    options,
+    getQuestionFilters(req)
+  );
 
   sendResponse(res, {
     message: "All questions retrieved successfully!",
@@ -22,10 +35,12 @@ const getAllQuestions = handleAsyncRequest(async (_req: TRequest, res) => {
   });
 });
 
-const getQuestionsByChapter = handleAsyncRequest(async (req: TRequest, res) => {
-  const result = await questionServices.getQuestionsByChapter(
-    req.params.chapterId as string,
-    req.user as TAuthUser
+const getQuestionsByLesson = handleAsyncRequest(async (req: TRequest, res) => {
+  const options = pick(req.query, ["page", "limit", "sortBy", "orderBy"]);
+  const result = await questionServices.getQuestionsByLesson(
+    req.params.lessonId as string,
+    req.user as TAuthUser,
+    options
   );
 
   sendResponse(res, {
@@ -58,7 +73,7 @@ const deleteQuestion = handleAsyncRequest(async (req: TRequest, res) => {
 export const questionController = {
   createQuestion,
   getAllQuestions,
-  getQuestionsByChapter,
+  getQuestionsByLesson,
   updateQuestion,
   deleteQuestion,
 };

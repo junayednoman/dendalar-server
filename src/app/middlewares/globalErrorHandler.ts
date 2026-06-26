@@ -55,9 +55,20 @@ const globalErrorHandler = (
     err.name === "PrismaClientKnownRequestError"
   ) {
     if (err.code === "P2002") {
-      message = `${err?.meta?.modelName === "Auth" ? "User" : err?.meta?.modelName} already exists with this ${
-        (err?.meta?.target as string[] | number[])[0]
-      }!`;
+      const modelName =
+        err?.meta?.modelName === "Auth"
+          ? "User"
+          : ((err?.meta?.modelName as string | undefined) ?? "Record");
+      const target = err?.meta?.target;
+      const duplicateField = Array.isArray(target)
+        ? target[0]
+        : typeof target === "string"
+          ? target
+          : undefined;
+
+      message = duplicateField
+        ? `${modelName} already exists with this ${duplicateField}!`
+        : `${modelName} already exists!`;
       error = err.meta;
     } else if (err.code === "P2025") {
       status = 404;

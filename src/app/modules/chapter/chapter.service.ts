@@ -29,34 +29,144 @@ const getAllChapters = async (authUser: TAuthUser, levelId?: string) => {
   const chapters = await prisma.chapter.findMany({
     where: whereConditions,
     orderBy: { index: "asc" },
-    include: { level: { select: { id: true, name: true, index: true } } },
+    include: {
+      level: { select: { id: true, name: true, index: true } },
+      lessons: {
+        orderBy: [{ index: "asc" }, { lessonType: "asc" }],
+      },
+    },
   });
 
   if (authUser.role === "USER") {
-    let activeChapterId: string | null = null;
-
     const userProfile = await prisma.userProfile.findUnique({
       where: { authId: authUser.id },
-      select: { activeChapterId: true },
+      select: {
+        activeLevelId: true,
+        activeChapterId: true,
+        activeLessonId: true,
+      },
     });
 
-    if (userProfile?.activeChapterId) {
-      activeChapterId = userProfile.activeChapterId;
-    }
+    const [
+      activeLevel,
+      activeChapter,
+      activeLesson,
+      firstLevel,
+      firstChapter,
+      firstChapterOfActiveLevel,
+    ] = await Promise.all([
+      userProfile?.activeLevelId
+        ? prisma.level.findUnique({
+            where: { id: userProfile.activeLevelId },
+            select: { id: true, index: true },
+          })
+        : Promise.resolve(null),
+      userProfile?.activeChapterId
+        ? prisma.chapter.findUnique({
+            where: { id: userProfile.activeChapterId },
+            select: { id: true, index: true, levelId: true },
+          })
+        : Promise.resolve(null),
+      userProfile?.activeLessonId
+        ? prisma.lesson.findUnique({
+            where: { id: userProfile.activeLessonId },
+            select: { id: true, index: true, chapterId: true },
+          })
+        : Promise.resolve(null),
+      prisma.level.findFirst({
+        orderBy: { index: "asc" },
+        select: { id: true, index: true },
+      }),
+      levelId
+        ? prisma.chapter.findFirst({
+            where: { levelId },
+            orderBy: { index: "asc" },
+            select: { id: true },
+          })
+        : prisma.chapter.findFirst({
+            orderBy: [{ level: { index: "asc" } }, { index: "asc" }],
+            select: { id: true },
+          }),
+      userProfile?.activeLevelId
+        ? prisma.chapter.findFirst({
+            where: { levelId: userProfile.activeLevelId },
+            orderBy: { index: "asc" },
+            select: { id: true },
+          })
+        : Promise.resolve(null),
+    ]);
 
-    const activeChapterIndex = chapters.findIndex(
-      chapter => chapter.id === activeChapterId
-    );
-    const result = chapters.map((chapter, index) => {
-      if (index < activeChapterIndex) {
-        return { ...chapter, isCompleted: true };
+    const result = chapters.map(chapter => {
+      let isCompleted = false;
+      let isLocked = true;
+
+      if (!activeLevel) {
+        if (
+          firstLevel?.id === chapter.levelId &&
+          firstChapter?.id === chapter.id
+        ) {
+          isLocked = false;
+        }
+      } else if (chapter.level.index < activeLevel.index) {
+        isCompleted = true;
+        isLocked = false;
+      } else if (chapter.level.index > activeLevel.index) {
+        isLocked = true;
+      } else if (activeChapter && activeChapter.levelId === chapter.levelId) {
+        if (chapter.index < activeChapter.index) {
+          isCompleted = true;
+          isLocked = false;
+        } else if (chapter.id === activeChapter.id) {
+          isLocked = false;
+        }
+      } else if (
+        (levelId ? firstChapter?.id : firstChapterOfActiveLevel?.id) ===
+        chapter.id
+      ) {
+        isLocked = false;
       }
-      return { ...chapter, isCompleted: false };
+
+      const lessons = chapter.lessons.map((lesson, lessonIndex) => {
+        let lessonCompleted = false;
+        let lessonLocked = true;
+
+        if (isCompleted) {
+          lessonCompleted = true;
+          lessonLocked = false;
+        } else if (isLocked) {
+          lessonLocked = true;
+        } else if (activeLesson && activeLesson.chapterId === chapter.id) {
+          if (lesson.index < activeLesson.index) {
+            lessonCompleted = true;
+            lessonLocked = false;
+          } else if (lesson.id === activeLesson.id) {
+            lessonLocked = false;
+          }
+        } else if (lessonIndex === 0) {
+          lessonLocked = false;
+        }
+
+        return {
+          ...lesson,
+          isCompleted: lessonCompleted,
+          isLocked: lessonLocked,
+        };
+      });
+
+      return { ...chapter, lessons, isCompleted, isLocked };
     });
+
     return result;
   }
 
-  return chapters;
+  return chapters.map(chapter => ({
+    ...chapter,
+    lessons: chapter.lessons.map(lesson => ({
+      ...lesson,
+      isCompleted: false,
+      isLocked: false,
+    })),
+  }));
 };
 
 const updateChapter = async (chapterId: string, payload: UpdateChapterZod) => {

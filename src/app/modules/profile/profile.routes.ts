@@ -6,11 +6,11 @@ import validate from "../../middlewares/validate";
 import {
   updateActiveChapterId,
   updateActiveLevelId,
+  updateActiveQuestionId,
   updateProfileZod,
 } from "./profile.validation";
 import { upload } from "../../utils/awss3";
 import { updateLessonZod } from "../lesson/lesson.validation";
-import { updateQuestionZod } from "../question/question.validation";
 
 const router = Router();
 
@@ -52,7 +52,7 @@ router.patch(
 router.patch(
   "/active-question",
   authorize(UserRole.USER),
-  validate(updateQuestionZod),
+  validate(updateActiveQuestionId),
   profileController.updateActiveQuestion
 );
 

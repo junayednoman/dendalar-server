@@ -3,16 +3,14 @@ import { lessonController } from "./lesson.controller";
 import authorize from "../../middlewares/authorize";
 import { UserRole } from "@prisma/client";
 import validate from "../../middlewares/validate";
-import { createLessonZod, updateLessonZod } from "./lesson.validation";
-import { upload } from "../../utils/awss3";
+import { createLessonZod, updateLessonInputZod } from "./lesson.validation";
 
 const router = Router();
 
 router.post(
   "/",
   authorize(UserRole.ADMIN),
-  upload.single("icon"),
-  validate(createLessonZod, { formData: true }),
+  validate(createLessonZod),
   lessonController.createLesson
 );
 
@@ -25,8 +23,7 @@ router.get(
 router.patch(
   "/:id",
   authorize(UserRole.ADMIN),
-  upload.single("icon"),
-  validate(updateLessonZod, { formData: true }),
+  validate(updateLessonInputZod),
   lessonController.updateLesson
 );
 

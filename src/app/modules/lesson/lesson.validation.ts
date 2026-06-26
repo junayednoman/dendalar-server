@@ -1,18 +1,20 @@
 import { z } from "zod";
 
 export const createLessonZod = z.object({
-  name: z.string().min(1, "Name is required"),
+  chapterId: z.string().uuid("Invalid chapter ID"),
   index: z.coerce.number().int().min(1, "Index is required"),
+  lessonType: z.enum(["SENTENCE", "DIALOGUE"]),
+});
+
+export const updateLessonInputZod = z.object({
+  chapterId: z.string().uuid("Invalid chapter ID").optional(),
+  index: z.coerce.number().optional(),
+  lessonType: z.enum(["SENTENCE", "DIALOGUE"]).optional(),
 });
 
 export const updateLessonZod = z.object({
-  name: z.string().optional(),
-  index: z.coerce.number().optional(),
+  lessonId: z.string().min(1, "Lesson id is required").trim(),
 });
 
-export type CreateLessonZod = z.infer<typeof createLessonZod> & {
-  icon: string;
-};
-export type UpdateLessonZod = z.infer<typeof updateLessonZod> & {
-  icon?: string;
-};
+export type CreateLessonZod = z.infer<typeof createLessonZod>;
+export type UpdateLessonInputZod = z.infer<typeof updateLessonInputZod>;

@@ -21,9 +21,9 @@ router.get(
 );
 
 router.get(
-  "/chapter/:chapterId",
+  "/lesson/:lessonId",
   authorize(UserRole.ADMIN, UserRole.USER),
-  questionController.getQuestionsByChapter
+  questionController.getQuestionsByLesson
 );
 
 router.patch(

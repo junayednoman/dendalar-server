@@ -43,13 +43,24 @@ const getAllLevels = async (authUser: TAuthUser) => {
     );
     const result = levels.map((level, index) => {
       if (index < activeLevelIndex) {
-        return { ...level, isCompleted: true };
+        return { ...level, isCompleted: true, isLocked: false };
       }
-      return { ...level, isCompleted: false };
+
+      if (index === activeLevelIndex) {
+        return { ...level, isCompleted: false, isLocked: false };
+      }
+
+      return { ...level, isCompleted: false, isLocked: true };
     });
     return result;
+  } else {
+    const result = levels.map((level, index) => {
+      if (index === 0) return { ...level, isCompleted: false, isLocked: false };
+      return { ...level, isCompleted: false, isLocked: true };
+    });
+
+    return result;
   }
-  return levels;
 };
 
 const updateLevel = async (levelId: string, payload: UpdateLevelZod) => {

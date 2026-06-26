@@ -93,27 +93,29 @@ model Chapter {
   updatedAt    DateTime      @updatedAt
   questions    Question[]
   userProfiles UserProfile[]
+  lessons      Lesson[]
 
   @@unique([levelId, index])
 }
 
 model Lesson {
   id           String        @id @default(uuid())
-  name         String        @unique
-  icon         String
-  index        Int           @unique
-  createdAt    DateTime      @default(now())
-  updatedAt    DateTime      @updatedAt
-  questions    Question[]
+  index        Int
+  lessonType   LessonType
+  chapterId    String
+  chapter      Chapter       @relation(fields: [chapterId], references: [id], onDelete: Cascade)
   userProfiles UserProfile[]
+  questions    Question[]
+
+  @@unique([index, chapterId])
 }
 
 model Question {
   id                         String        @id @default(uuid())
   chapterId                  String
   chapter                    Chapter       @relation(fields: [chapterId], references: [id], onDelete: Cascade)
-  lessonId                   String
-  lesson                     Lesson        @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  lessonId                   String?
+  lesson                     Lesson?       @relation(fields: [lessonId], references: [id], onDelete: SetNull)
   sentenceInEnglish          String?
   sentenceInLearningLanguage String?
   hint                       String?
@@ -174,6 +176,11 @@ enum OTPPurpose {
 }
 
 enum QuestionType {
+  SENTENCE
+  DIALOGUE
+}
+
+enum LessonType {
   SENTENCE
   DIALOGUE
 }

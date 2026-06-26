@@ -1,54 +1,197 @@
 import ApiError from "../../classes/ApiError";
-import { TFile } from "../../interface/file.interface";
 import { TAuthUser } from "../../interface/global.interface";
-import { deleteFromS3, uploadToS3 } from "../../utils/awss3";
 import prisma from "../../utils/prisma";
-import { CreateLessonZod, UpdateLessonZod } from "./lesson.validation";
+import { CreateLessonZod, UpdateLessonInputZod } from "./lesson.validation";
 
-const createLesson = async (payload: CreateLessonZod, file: TFile) => {
-  const existingWithSameName = await prisma.lesson.findFirst({
-    where: { name: payload.name },
+const createLesson = async (payload: CreateLessonZod) => {
+  const chapter = await prisma.chapter.findUnique({
+    where: { id: payload.chapterId },
   });
-  if (existingWithSameName)
-    throw new ApiError(400, "Lesson name already exists!");
+  if (!chapter) throw new ApiError(404, "Chapter not found!");
 
-  const existingWithSameIndex = await prisma.lesson.findFirst({
-    where: { index: payload.index },
+  const existingLesson = await prisma.lesson.findFirst({
+    where: {
+      chapterId: payload.chapterId,
+      index: payload.index,
+    },
   });
-  if (existingWithSameIndex)
-    throw new ApiError(400, "Lesson index already exists!");
+  if (existingLesson)
+    throw new ApiError(
+      400,
+      "Lesson with same index already exists for this chapter!"
+    );
 
-  payload.icon = await uploadToS3(file);
   const result = await prisma.lesson.create({ data: payload });
   return result;
 };
 
-const getAllLessons = async (authUser: TAuthUser) => {
+const getAllLessons = async (authUser: TAuthUser, chapterId?: string) => {
+  if (chapterId) {
+    const chapter = await prisma.chapter.findUnique({
+      where: { id: chapterId },
+    });
+
+    if (!chapter) throw new ApiError(404, "Invalid chapter id!");
+  }
+
   const lessons = await prisma.lesson.findMany({
-    orderBy: { index: "asc" },
+    where: chapterId ? { chapterId } : undefined,
+    orderBy: [{ chapterId: "asc" }, { index: "asc" }, { lessonType: "asc" }],
+    include: {
+      chapter: {
+        select: {
+          id: true,
+          name: true,
+          index: true,
+          levelId: true,
+        },
+      },
+    },
   });
 
   if (authUser.role === "USER") {
-    let activeLessonId: string | null = null;
-
     const userProfile = await prisma.userProfile.findUnique({
       where: { authId: authUser.id },
-      select: { activeLessonId: true },
+      select: {
+        activeLevelId: true,
+        activeChapterId: true,
+        activeLessonId: true,
+      },
     });
 
-    if (userProfile?.activeLessonId) {
-      activeLessonId = userProfile.activeLessonId;
-    }
+    const [
+      activeLevel,
+      activeChapter,
+      activeLesson,
+      firstLevel,
+      firstChapterOfFirstLevel,
+      selectedChapter,
+      firstChapterOfActiveLevel,
+    ] = await Promise.all([
+      userProfile?.activeLevelId
+        ? prisma.level.findUnique({
+            where: { id: userProfile.activeLevelId },
+            select: { id: true, index: true },
+          })
+        : Promise.resolve(null),
+      userProfile?.activeChapterId
+        ? prisma.chapter.findUnique({
+            where: { id: userProfile.activeChapterId },
+            select: { id: true, index: true, levelId: true },
+          })
+        : Promise.resolve(null),
+      userProfile?.activeLessonId
+        ? prisma.lesson.findUnique({
+            where: { id: userProfile.activeLessonId },
+            select: { id: true, index: true, chapterId: true },
+          })
+        : Promise.resolve(null),
+      prisma.level.findFirst({
+        orderBy: { index: "asc" },
+        select: { id: true },
+      }),
+      prisma.chapter.findFirst({
+        orderBy: [{ level: { index: "asc" } }, { index: "asc" }],
+        select: { id: true, index: true, levelId: true },
+      }),
+      chapterId
+        ? prisma.chapter.findUnique({
+            where: { id: chapterId },
+            select: {
+              id: true,
+              index: true,
+              levelId: true,
+              level: { select: { index: true } },
+            },
+          })
+        : Promise.resolve(null),
+      userProfile?.activeLevelId
+        ? prisma.chapter.findFirst({
+            where: { levelId: userProfile.activeLevelId },
+            orderBy: { index: "asc" },
+            select: { id: true, index: true, levelId: true },
+          })
+        : Promise.resolve(null),
+    ]);
 
-    const activeLessonIndex = lessons.findIndex(
-      lesson => lesson.id === activeLessonId
-    );
     const result = lessons.map((lesson, index) => {
-      if (index < activeLessonIndex) {
-        return { ...lesson, isCompleted: true };
+      let isCompleted = false;
+      let isLocked = true;
+
+      const chapter = lesson.chapter;
+
+      if (selectedChapter) {
+        if (!activeLevel) {
+          if (
+            firstLevel?.id === selectedChapter.levelId &&
+            firstChapterOfFirstLevel?.id === selectedChapter.id &&
+            index === 0
+          ) {
+            isLocked = false;
+          }
+        } else if (selectedChapter.level.index < activeLevel.index) {
+          isCompleted = true;
+          isLocked = false;
+        } else if (selectedChapter.level.index > activeLevel.index) {
+          isLocked = true;
+        } else if (
+          activeChapter &&
+          activeChapter.levelId === selectedChapter.levelId
+        ) {
+          if (selectedChapter.index < activeChapter.index) {
+            isCompleted = true;
+            isLocked = false;
+          } else if (selectedChapter.index > activeChapter.index) {
+            isLocked = true;
+          } else if (
+            activeLesson &&
+            activeLesson.chapterId === selectedChapter.id
+          ) {
+            if (lesson.index < activeLesson.index) {
+              isCompleted = true;
+              isLocked = false;
+            } else if (lesson.id === activeLesson.id) {
+              isLocked = false;
+            }
+          } else if (index === 0) {
+            isLocked = false;
+          }
+        } else if (selectedChapter.index === 1 && index === 0) {
+          isLocked = false;
+        }
+      } else if (!activeLevel) {
+        if (
+          firstLevel?.id === chapter.levelId &&
+          firstChapterOfFirstLevel?.id === chapter.id &&
+          index === 0
+        ) {
+          isLocked = false;
+        }
+      } else if (activeChapter && chapter.levelId === activeChapter.levelId) {
+        if (chapter.index < activeChapter.index) {
+          isCompleted = true;
+          isLocked = false;
+        } else if (chapter.index > activeChapter.index) {
+          isLocked = true;
+        } else if (activeLesson && activeLesson.chapterId === chapter.id) {
+          if (lesson.index < activeLesson.index) {
+            isCompleted = true;
+            isLocked = false;
+          } else if (lesson.id === activeLesson.id) {
+            isLocked = false;
+          }
+        }
+      } else if (
+        !activeChapter &&
+        firstChapterOfActiveLevel?.id === chapter.id &&
+        index === 0
+      ) {
+        isLocked = false;
       }
-      return { ...lesson, isCompleted: false };
+
+      return { ...lesson, isCompleted, isLocked };
     });
+
     return result;
   }
 
@@ -57,40 +200,45 @@ const getAllLessons = async (authUser: TAuthUser) => {
 
 const updateLesson = async (
   lessonId: string,
-  payload: UpdateLessonZod,
-  file?: TFile
+  payload: UpdateLessonInputZod
 ) => {
   const lesson = await prisma.lesson.findUnique({
     where: { id: lessonId },
   });
   if (!lesson) throw new ApiError(404, "Lesson not found!");
 
-  if (payload.name) {
-    const existingWithSameName = await prisma.lesson.findFirst({
-      where: { name: payload.name, id: { not: lessonId } },
+  if (payload.chapterId) {
+    const chapter = await prisma.chapter.findUnique({
+      where: { id: payload.chapterId },
     });
-    if (existingWithSameName)
-      throw new ApiError(400, "Lesson name already exists!");
+    if (!chapter) throw new ApiError(404, "Chapter not found!");
   }
 
-  if (payload.index) {
-    const existingWithSameIndex = await prisma.lesson.findFirst({
-      where: { index: payload.index, id: { not: lessonId } },
+  if (payload.chapterId || payload.index || payload.lessonType) {
+    const targetChapterId = payload.chapterId || lesson.chapterId;
+    const targetIndex = payload.index || lesson.index;
+    const targetLessonType = payload.lessonType || lesson.lessonType;
+
+    const existingLesson = await prisma.lesson.findFirst({
+      where: {
+        chapterId: targetChapterId,
+        index: targetIndex,
+        lessonType: targetLessonType,
+        id: { not: lessonId },
+      },
     });
-    if (existingWithSameIndex)
-      throw new ApiError(400, "Lesson index already exists!");
+
+    if (existingLesson)
+      throw new ApiError(
+        400,
+        "Lesson with same index and type already exists for this chapter!"
+      );
   }
-  if (file) {
-    payload.icon = await uploadToS3(file);
-  }
+
   const result = await prisma.lesson.update({
     where: { id: lessonId },
     data: payload,
   });
-
-  if (file && result) {
-    await deleteFromS3(lesson.icon);
-  }
   return result;
 };
 
@@ -98,9 +246,6 @@ const deleteLesson = async (lessonId: string) => {
   const result = await prisma.lesson.delete({
     where: { id: lessonId },
   });
-  if (result) {
-    await deleteFromS3(result.icon);
-  }
   return result;
 };
 
