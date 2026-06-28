@@ -39,6 +39,10 @@ router.patch(
   authController.changeAccountStatus
 );
 
-router.post("/logout", authorize(UserRole.ADMIN), authController.logout);
+router.post(
+  "/logout",
+  authorize(UserRole.ADMIN, UserRole.USER),
+  authController.logout
+);
 
 export const authRoutes = router;

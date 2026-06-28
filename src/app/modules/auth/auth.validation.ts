@@ -31,7 +31,7 @@ export type TSignup = z.infer<typeof userSignUpZod>;
 
 export const loginZodSchema = z.object({
   email: emailZod,
-  password: passwordZod,
+  password: z.string().min(1, "Password is required"),
   fcmToken: z.string().optional(),
   isMobileApp: z.boolean().default(false),
 });
