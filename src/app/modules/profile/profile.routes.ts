@@ -5,7 +5,6 @@ import { UserRole } from "@prisma/client";
 import validate from "../../middlewares/validate";
 import {
   updateActiveChapterId,
-  updateActiveLevelId,
   updateActiveQuestionId,
   updateProfileZod,
 } from "./profile.validation";
@@ -31,7 +30,6 @@ router.patch(
 router.patch(
   "/active-level",
   authorize(UserRole.USER),
-  validate(updateActiveLevelId),
   profileController.updateActiveLevel
 );
 
@@ -54,6 +52,12 @@ router.patch(
   authorize(UserRole.USER),
   validate(updateActiveQuestionId),
   profileController.updateActiveQuestion
+);
+
+router.patch(
+  "/reset-level",
+  authorize(UserRole.USER),
+  profileController.resetLevel
 );
 
 export const profileRoutes = router;

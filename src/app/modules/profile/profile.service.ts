@@ -24,7 +24,10 @@ const findFirstLessonByChapterId = async (chapterId: string) => {
   return lesson;
 };
 
-const findFirstQuestionByLessonId = async (lessonId: string, chapterId: string) => {
+const findFirstQuestionByLessonId = async (
+  lessonId: string,
+  chapterId: string
+) => {
   const question = await prisma.question.findFirst({
     where: { lessonId, chapterId },
     orderBy: [{ index: "asc" }, { createdAt: "asc" }],
@@ -80,9 +83,18 @@ const updateProfile = async (
   return result;
 };
 
-const updateActiveLevel = async (userId: string, levelId: string) => {
+const updateActiveLevel = async (userId: string) => {
+  const userProfile = await prisma.userProfile.findUnique({
+    where: { authId: userId },
+    select: { activeLevelId: true },
+  });
+
+  if (!userProfile?.activeLevelId) {
+    throw new ApiError(404, "No active level found for this user!");
+  }
+
   const currentLevel = await prisma.level.findUniqueOrThrow({
-    where: { id: levelId },
+    where: { id: userProfile.activeLevelId },
   });
   const nextLevel = await prisma.level.findUniqueOrThrow({
     where: { index: currentLevel.index + 1 },
@@ -226,7 +238,10 @@ const updateActiveQuestion = async (userId: string, questionId: string) => {
   });
 
   if (!currentQuestion.lessonId) {
-    throw new ApiError(404, "Current question is not associated with a lesson!");
+    throw new ApiError(
+      404,
+      "Current question is not associated with a lesson!"
+    );
   }
 
   const questions = await prisma.question.findMany({
@@ -323,6 +338,46 @@ const updateActiveQuestion = async (userId: string, questionId: string) => {
   return result;
 };
 
+const resetLevel = async (userId: string) => {
+  const firstLevel = await prisma.level.findFirst({
+    orderBy: { index: "asc" },
+  });
+  if (!firstLevel) throw new ApiError(404, "No level found!");
+
+  const firstChapter = await prisma.chapter.findFirst({
+    where: { levelId: firstLevel.id },
+    orderBy: { index: "asc" },
+  });
+  if (!firstChapter) throw new ApiError(404, "No chapter found!");
+
+  const firstLesson = await prisma.lesson.findFirst({
+    where: { chapterId: firstChapter.id },
+    orderBy: [{ index: "asc" }, { lessonType: "asc" }],
+  });
+  if (!firstLesson) throw new ApiError(404, "No lesson found!");
+
+  const firstQuestion = await prisma.question.findFirst({
+    where: {
+      chapterId: firstChapter.id,
+      lessonId: firstLesson.id,
+    },
+    orderBy: [{ index: "asc" }, { createdAt: "asc" }],
+  });
+  if (!firstQuestion) throw new ApiError(404, "No question found!");
+
+  const result = await prisma.userProfile.update({
+    where: { authId: userId },
+    data: {
+      activeLevelId: firstLevel.id,
+      activeChapterId: firstChapter.id,
+      activeLessonId: firstLesson.id,
+      activeQuestionId: firstQuestion.id,
+    },
+  });
+
+  return result;
+};
+
 export const profileServices = {
   getProfile,
   updateProfile,
@@ -330,4 +385,5 @@ export const profileServices = {
   updateActiveChapter,
   updateActiveLesson,
   updateActiveQuestion,
+  resetLevel,
 };

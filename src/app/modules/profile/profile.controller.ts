@@ -26,10 +26,7 @@ const updateProfile = handleAsyncRequest(async (req: TRequest, res) => {
 });
 
 const updateActiveLevel = handleAsyncRequest(async (req: TRequest, res) => {
-  const result = await profileServices.updateActiveLevel(
-    req.user?.id as string,
-    req.body.levelId
-  );
+  const result = await profileServices.updateActiveLevel(req.user?.id as string);
 
   sendResponse(res, {
     message: "Active level updated successfully!",
@@ -73,6 +70,15 @@ const updateActiveQuestion = handleAsyncRequest(async (req: TRequest, res) => {
   });
 });
 
+const resetLevel = handleAsyncRequest(async (req: TRequest, res) => {
+  const result = await profileServices.resetLevel(req.user?.id as string);
+
+  sendResponse(res, {
+    message: "Level reset successfully!",
+    data: result,
+  });
+});
+
 export const profileController = {
   getProfile,
   updateProfile,
@@ -80,4 +86,5 @@ export const profileController = {
   updateActiveChapter,
   updateActiveLesson,
   updateActiveQuestion,
+  resetLevel,
 };
