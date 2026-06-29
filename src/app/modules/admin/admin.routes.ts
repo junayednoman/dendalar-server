@@ -9,6 +9,11 @@ import { UserRole } from "@prisma/client";
 const router = Router();
 
 router.get("/profile", authorize(UserRole.ADMIN), adminController.getProfile);
+router.get(
+  "/dashboard-stats",
+  authorize(UserRole.ADMIN),
+  adminController.getDashboardStats
+);
 router.patch(
   "/",
   authorize(UserRole.ADMIN),

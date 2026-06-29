@@ -12,6 +12,18 @@ const getProfile = handleAsyncRequest(async (req: TRequest, res: Response) => {
   });
 });
 
+const getDashboardStats = handleAsyncRequest(
+  async (req: TRequest, res: Response) => {
+    const year =
+      typeof req.query.year === "string" ? Number(req.query.year) : undefined;
+    const result = await adminServices.getDashboardStats(year);
+    sendResponse(res, {
+      message: "Dashboard stats fetched successfully!",
+      data: result,
+    });
+  }
+);
+
 const updateProfile = handleAsyncRequest(
   async (req: TRequest, res: Response) => {
     const result = await adminServices.updateProfile(
@@ -28,5 +40,6 @@ const updateProfile = handleAsyncRequest(
 
 export const adminController = {
   getProfile,
+  getDashboardStats,
   updateProfile,
 };
