@@ -21,21 +21,23 @@ const createLevel = async (payload: CreateLevelZod) => {
 };
 
 const getAllLevels = async (authUser: TAuthUser) => {
-  let activeLevelId: string | null = null;
-  if (authUser.role === "USER") {
-    const userProfile = await prisma.userProfile.findUnique({
-      where: { authId: authUser.id },
-      select: { activeLevelId: true },
-    });
-
-    if (userProfile?.activeLevelId) {
-      activeLevelId = userProfile.activeLevelId;
-    }
-  }
-
   const levels = await prisma.level.findMany({
     orderBy: { index: "asc" },
   });
+
+  if (authUser.role !== "USER") {
+    return levels;
+  }
+
+  let activeLevelId: string | null = null;
+  const userProfile = await prisma.userProfile.findUnique({
+    where: { authId: authUser.id },
+    select: { activeLevelId: true },
+  });
+
+  if (userProfile?.activeLevelId) {
+    activeLevelId = userProfile.activeLevelId;
+  }
 
   if (activeLevelId) {
     const activeLevelIndex = levels.findIndex(
