@@ -4,13 +4,15 @@ import authorize from "../../middlewares/authorize";
 import { UserRole } from "@prisma/client";
 import validate from "../../middlewares/validate";
 import { createLevelZod, updateLevelZod } from "./level.validation";
+import { uploadImage } from "../../utils/awss3";
 
 const router = Router();
 
 router.post(
   "/",
   authorize(UserRole.ADMIN),
-  validate(createLevelZod),
+  uploadImage.single("image"),
+  validate(createLevelZod, { formData: true }),
   levelController.createLevel
 );
 
@@ -23,7 +25,8 @@ router.get(
 router.patch(
   "/:id",
   authorize(UserRole.ADMIN),
-  validate(updateLevelZod),
+  uploadImage.single("image"),
+  validate(updateLevelZod, { formData: true }),
   levelController.updateLevel
 );
 

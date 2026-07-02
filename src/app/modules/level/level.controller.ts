@@ -1,10 +1,11 @@
+import { TFile } from "../../interface/file.interface";
 import { TAuthUser, TRequest } from "../../interface/global.interface";
 import handleAsyncRequest from "../../utils/handleAsyncRequest";
 import { sendResponse } from "../../utils/sendResponse";
 import { levelServices } from "./level.service";
 
 const createLevel = handleAsyncRequest(async (req: TRequest, res) => {
-  const result = await levelServices.createLevel(req.body);
+  const result = await levelServices.createLevel(req.body, req.file as TFile);
 
   sendResponse(res, {
     status: 201,
@@ -25,7 +26,8 @@ const getAllLevels = handleAsyncRequest(async (req: TRequest, res) => {
 const updateLevel = handleAsyncRequest(async (req: TRequest, res) => {
   const result = await levelServices.updateLevel(
     req.params.id as string,
-    req.body
+    req.body,
+    req.file as TFile
   );
 
   sendResponse(res, {

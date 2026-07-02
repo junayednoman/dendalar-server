@@ -74,6 +74,7 @@ model UserProfile {
 model Level {
   id           String        @id @default(uuid())
   name         String        @unique
+  image        String        @default("")
   index        Int           @unique
   createdAt    DateTime      @default(now())
   updatedAt    DateTime      @updatedAt

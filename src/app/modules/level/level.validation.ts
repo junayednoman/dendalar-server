@@ -10,5 +10,7 @@ export const updateLevelZod = z.object({
   index: z.coerce.number().optional(),
 });
 
-export type CreateLevelZod = z.infer<typeof createLevelZod>;
-export type UpdateLevelZod = z.infer<typeof updateLevelZod>;
+export type CreateLevelZod = z.infer<typeof createLevelZod> & { image: string };
+export type UpdateLevelZod = z.infer<typeof updateLevelZod> & {
+  image?: string;
+};

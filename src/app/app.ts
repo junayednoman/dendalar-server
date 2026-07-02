@@ -11,7 +11,11 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(
   cors({
-    origin: ["http://localhost:3000", "http://10.10.28.34:3001"],
+    origin: [
+      "http://localhost:3000",
+      "http://10.10.28.34:3000",
+      "https://b5ff-103-159-73-203.ngrok-free.app",
+    ],
     credentials: true,
     methods: ["GET", "POST", "PUT", "DELETE", "PATCH"],
   })

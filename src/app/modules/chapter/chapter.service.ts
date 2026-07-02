@@ -104,7 +104,10 @@ const getAllChapters = async (authUser: TAuthUser, levelId?: string) => {
     let isLocked = true;
 
     if (!activeLevel) {
-      if (firstLevel?.id === chapter.levelId && firstChapter?.id === chapter.id) {
+      if (
+        firstLevel?.id === chapter.levelId &&
+        firstChapter?.id === chapter.id
+      ) {
         isLocked = false;
       }
     } else if (chapter.level.index < activeLevel.index) {
@@ -120,7 +123,8 @@ const getAllChapters = async (authUser: TAuthUser, levelId?: string) => {
         isLocked = false;
       }
     } else if (
-      (levelId ? firstChapter?.id : firstChapterOfActiveLevel?.id) === chapter.id
+      (levelId ? firstChapter?.id : firstChapterOfActiveLevel?.id) ===
+      chapter.id
     ) {
       isLocked = false;
     }
