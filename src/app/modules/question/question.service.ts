@@ -18,15 +18,34 @@ const createQuestion = async (payload: CreateQuestionZod) => {
   });
   if (!lesson) throw new ApiError(404, "Lesson not found!");
 
-  if (lesson.lessonType !== payload.type)
-    throw new ApiError(400, "Question type does not match lesson type!");
+  if (
+    lesson.lessonType === "SENTENCE" &&
+    (!payload.sentenceInEnglish ||
+      !payload.sentenceInLearningLanguage ||
+      !payload.hint)
+  ) {
+    throw new ApiError(
+      400,
+      "For sentence type, sentenceInEnglish, sentenceInLearningLanguage, and hint are required"
+    );
+  }
+
+  if (
+    lesson.lessonType === "DIALOGUE" &&
+    (!payload.fullSentence || !payload.missingWord)
+  ) {
+    throw new ApiError(
+      400,
+      "For dialogue type, fullSentence and missingWord are required"
+    );
+  }
 
   const existingWithSameIndex = await prisma.question.findFirst({
     where: {
       chapterId: payload.chapterId,
       lessonId: payload.lessonId,
       index: payload.index,
-      type: payload.type,
+      type: lesson.lessonType,
     },
   });
   if (existingWithSameIndex)
@@ -35,7 +54,12 @@ const createQuestion = async (payload: CreateQuestionZod) => {
       "Question with same index and type already exists!"
     );
 
-  const result = await prisma.question.create({ data: payload });
+  const result = await prisma.question.create({
+    data: {
+      ...payload,
+      type: lesson.lessonType,
+    },
+  });
   return result;
 };
 
@@ -261,11 +285,20 @@ const updateQuestion = async (
   });
   if (!question) throw new ApiError(404, "Question not found!");
 
-  if (payload.chapterId || payload.lessonId || payload.index || payload.type) {
+  let targetType = question.type;
+
+  if (payload.lessonId) {
+    const lesson = await prisma.lesson.findUnique({
+      where: { id: payload.lessonId },
+    });
+    if (!lesson) throw new ApiError(404, "Lesson not found!");
+    targetType = lesson.lessonType;
+  }
+
+  if (payload.chapterId || payload.lessonId || payload.index) {
     const targetChapterId = payload.chapterId || question.chapterId;
     const targetLessonId = payload.lessonId || question.lessonId;
     const targetIndex = payload.index || question.index;
-    const targetType = payload.type || question.type;
 
     const existingWithSameIndex = await prisma.question.findFirst({
       where: {
@@ -290,16 +323,36 @@ const updateQuestion = async (
     if (!chapter) throw new ApiError(404, "Chapter not found!");
   }
 
-  if (payload.lessonId) {
-    const lesson = await prisma.lesson.findUnique({
-      where: { id: payload.lessonId },
-    });
-    if (!lesson) throw new ApiError(404, "Lesson not found!");
+  if (
+    targetType === "SENTENCE" &&
+    ((payload.sentenceInEnglish !== undefined && !payload.sentenceInEnglish) ||
+      (payload.sentenceInLearningLanguage !== undefined &&
+        !payload.sentenceInLearningLanguage) ||
+      (payload.hint !== undefined && !payload.hint))
+  ) {
+    throw new ApiError(
+      400,
+      "For sentence type, sentenceInEnglish, sentenceInLearningLanguage, and hint cannot be empty"
+    );
+  }
+
+  if (
+    targetType === "DIALOGUE" &&
+    ((payload.fullSentence !== undefined && !payload.fullSentence) ||
+      (payload.missingWord !== undefined && !payload.missingWord))
+  ) {
+    throw new ApiError(
+      400,
+      "For dialogue type, fullSentence and missingWord cannot be empty"
+    );
   }
 
   const result = await prisma.question.update({
     where: { id: questionId },
-    data: payload,
+    data: {
+      ...payload,
+      type: targetType,
+    },
   });
   return result;
 };
