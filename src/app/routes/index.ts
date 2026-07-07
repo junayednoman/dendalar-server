@@ -9,6 +9,7 @@ import { chapterRoutes } from "../modules/chapter/chapter.routes";
 import { lessonRoutes } from "../modules/lesson/lesson.routes";
 import { questionRoutes } from "../modules/question/question.routes";
 import { profileRoutes } from "../modules/profile/profile.routes";
+import { mascotRoutes } from "../modules/mascot/mascot.routes";
 const router = Router();
 
 const routes = [
@@ -21,6 +22,7 @@ const routes = [
   { path: "/lessons", route: lessonRoutes },
   { path: "/questions", route: questionRoutes },
   { path: "/profile", route: profileRoutes },
+  { path: "/mascots", route: mascotRoutes },
   { path: "/upload-files", route: fileRoutes },
 ];
 

@@ -88,6 +88,7 @@ model Chapter {
   id           String        @id @default(uuid())
   name         String
   index        Int
+  note         String?
   levelId      String
   level        Level         @relation(fields: [levelId], references: [id], onDelete: Cascade)
   createdAt    DateTime      @default(now())
@@ -97,6 +98,35 @@ model Chapter {
   lessons      Lesson[]
 
   @@unique([levelId, index])
+}
+
+model Mascot {
+  id                    String   @id @default(uuid())
+  key                   String   @unique @default("default")
+  splash1               String?
+  splash2               String?
+  splash3               String?
+  courseBuilding        String?
+  referralSource        String?
+  createProfile         String?
+  avatar                String?
+  signupSuccess         String?
+  login                 String?
+  forgetPassword        String?
+  verificationSuccess   String?
+  setNewPassword        String?
+  passwordSaved         String?
+  levelLocked           String?
+  questionAvatar        String?
+  hint                  String?
+  congrats              String?
+  vocabularyComingSoon  String?
+  booksComingSoon       String?
+  editProfile           String?
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  @@map("mascots")
 }
 
 model Lesson {
