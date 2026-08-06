@@ -14,7 +14,8 @@ app.use(
     origin: [
       "http://localhost:3000",
       "http://10.10.28.34:3000",
-      "https://403b-103-159-73-203.ngrok-free.app",
+      "https://42cc-162-4-34-65.ngrok-free.app",
+      "http://72.244.153.29:3010",
     ],
     credentials: true,
     methods: ["GET", "POST", "PUT", "DELETE", "PATCH"],

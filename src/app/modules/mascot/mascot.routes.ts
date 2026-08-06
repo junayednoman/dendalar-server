@@ -8,11 +8,7 @@ import { mascotFieldNames, removeMascotFieldZod } from "./mascot.validation";
 
 const router = Router();
 
-router.get(
-  "/",
-  authorize(UserRole.ADMIN, UserRole.USER),
-  mascotController.getMascot
-);
+router.get("/", mascotController.getMascot);
 
 router.patch(
   "/",
