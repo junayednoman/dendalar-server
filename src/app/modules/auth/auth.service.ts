@@ -2,6 +2,7 @@ import crypto from "crypto";
 import ApiError from "../../classes/ApiError";
 import prisma from "../../utils/prisma";
 import { sendEmail } from "../../utils/sendEmail";
+import { deleteFromS3 } from "../../utils/awss3";
 import {
   TChangePasswordInput,
   TLoginInput,
@@ -396,25 +397,30 @@ const deleteAccount = async (userId: string) => {
     where: {
       id: userId,
     },
+    include: {
+      profile: {
+        select: {
+          image: true,
+        },
+      },
+    },
   });
 
   if (auth.role === UserRole.ADMIN) {
     throw new ApiError(400, "Admin account cannot be deleted from this API!");
   }
 
-  if (auth.status === UserStatus.DELETED) {
-    throw new ApiError(400, "Account is already deleted!");
-  }
+  const profileImage = auth.profile?.image;
 
-  await prisma.auth.update({
+  await prisma.auth.delete({
     where: {
       id: userId,
     },
-    data: {
-      status: UserStatus.DELETED,
-      fcmToken: null,
-    },
   });
+
+  if (profileImage) {
+    await deleteFromS3(profileImage);
+  }
 };
 
 const changeAccountStatus = async (userId: string, status: UserStatus) => {
