@@ -14,7 +14,7 @@ app.use(
     origin: [
       "http://localhost:3000",
       "http://10.10.28.34:3000",
-      "https://42cc-162-4-34-65.ngrok-free.app",
+      "https://dashboard.dendalar.org",
       "http://72.244.153.29:3010",
     ],
     credentials: true,
