@@ -391,6 +391,32 @@ const changePassword = async (
   });
 };
 
+const deleteAccount = async (userId: string) => {
+  const auth = await prisma.auth.findUniqueOrThrow({
+    where: {
+      id: userId,
+    },
+  });
+
+  if (auth.role === UserRole.ADMIN) {
+    throw new ApiError(400, "Admin account cannot be deleted from this API!");
+  }
+
+  if (auth.status === UserStatus.DELETED) {
+    throw new ApiError(400, "Account is already deleted!");
+  }
+
+  await prisma.auth.update({
+    where: {
+      id: userId,
+    },
+    data: {
+      status: UserStatus.DELETED,
+      fcmToken: null,
+    },
+  });
+};
+
 const changeAccountStatus = async (userId: string, status: UserStatus) => {
   const auth = await prisma.auth.findUniqueOrThrow({
     where: {
@@ -457,5 +483,6 @@ export const authServices = {
   refreshToken,
   resetPassword,
   changePassword,
+  deleteAccount,
   changeAccountStatus,
 };

@@ -78,6 +78,18 @@ const changePassword = handleAsyncRequest(
   }
 );
 
+const deleteAccount = handleAsyncRequest(
+  async (req: TRequest, res: Response) => {
+    await authServices.deleteAccount(req.user?.id as string);
+    res.clearCookie("dendalarRefreshToken", { httpOnly: true });
+
+    sendResponse(res, {
+      message: "Account deleted successfully!",
+      data: null,
+    });
+  }
+);
+
 const changeAccountStatus = handleAsyncRequest(
   async (req: TRequest, res: Response) => {
     const { message } = await authServices.changeAccountStatus(
@@ -117,6 +129,7 @@ export const authController = {
   getAll,
   resetPassword,
   changePassword,
+  deleteAccount,
   changeAccountStatus,
   refreshToken,
   logout,

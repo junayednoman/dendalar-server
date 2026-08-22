@@ -32,6 +32,12 @@ router.post(
   authController.changePassword
 );
 
+router.delete(
+  "/delete-account",
+  authorize(UserRole.ADMIN, UserRole.USER),
+  authController.deleteAccount
+);
+
 router.patch(
   "/change-account-status/:userId",
   authorize(UserRole.ADMIN),
